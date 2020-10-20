@@ -1,5 +1,6 @@
 import csv
 import os
+import sys
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -62,13 +63,22 @@ def check_input(input_folder_pathname):
 		input_genbank = input_folder_pathname + '/' + input_folder + '/' + input_folder + '.gbk'
 		input_fasta = input_folder_pathname + '/' + input_folder + '/' + input_folder + '.fasta'
 		input_tsv = input_folder_pathname + '/' + input_folder + '/' + input_folder + '.tsv'
+
 		if os.path.exists(input_genbank):
 			genbank_parser(input_genbank, input_fasta, input_tsv)
 
+		if not os.path.exists(input_fasta) and not os.path.exists(input_tsv):
+			print('Missing both fasta and tsv files in ' + input_folder +'. Need at least one of them to work.')
+			sys.exit()
+
 		if not os.path.exists(input_fasta):
 			print('Missing fasta file for ' + input_folder)
+			input_fasta = None
+
 		if not os.path.exists(input_tsv):
 			print('Missing tsv file for ' + input_folder)
+			input_tsv = None
+
 		rhea_mapper_input_data[input_folder] = (input_fasta, input_tsv)
 
 	return rhea_mapper_input_data

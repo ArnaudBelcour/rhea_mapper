@@ -96,9 +96,15 @@ def map_orthology_to_rhea(rhea_uniprot_pathname, orthofinder_result_pathname, ou
 def merge_mapping_orthology(mapping_pathname, orthology_pathname, output_file):
 	results = {}
 
-	mapping_rheas = read_tsv(mapping_pathname, splitter=',')
+	if mapping_pathname:
+		mapping_rheas = read_tsv(mapping_pathname, splitter=',')
+	else:
+		mapping_rheas = {}
 
-	orthology_rheas = read_tsv(orthology_pathname, splitter=',')
+	if orthology_pathname:
+		orthology_rheas = read_tsv(orthology_pathname, splitter=',')
+	else:
+		orthology_rheas = {}
 
 	all_genes = list(mapping_rheas.keys()) + list(orthology_rheas.keys())
 
@@ -157,14 +163,27 @@ def manage_genome(input_folder, annotation_pathname, input_proteome, database_fo
 	if not os.path.exists(output_tmp_folder):
 		os.mkdir(output_tmp_folder)
 
-	mapping_result = output_tmp_folder + '/mapping.tsv'
-	orthogroups_result = output_tmp_folder + '/orthogroups_result.tsv'
-	orthology_result = output_tmp_folder +  '/orthology.tsv'
+	if annotation_pathname:
+		mapping_result = output_tmp_folder + '/mapping.tsv'
+	else:
+		mapping_result = None
+
+	if input_proteome:
+		orthogroups_result = output_tmp_folder + '/orthogroups_result.tsv'
+		orthology_result = output_tmp_folder +  '/orthology.tsv'
+	else:
+		orthogroups_result = None
+		orthology_result = None
 	merged_result = output_tmp_folder +  '/merged.tsv'
 	metabolic_network = output_folder + '/' + input_folder + '.sbml'
 
-	map_ec_to_rhea(annotation_pathname, rhea2ec, mapping_result)
-	orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, nb_cpu)
-	map_orthology_to_rhea(uniprot_rhea_evidence_tsv, orthogroups_result, orthology_result)
+	if annotation_pathname:
+		map_ec_to_rhea(annotation_pathname, rhea2ec, mapping_result)
+
+	if input_proteome:
+		orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, nb_cpu)
+		map_orthology_to_rhea(uniprot_rhea_evidence_tsv, orthogroups_result, orthology_result)
+
 	merge_mapping_orthology(mapping_result, orthology_result, merged_result)
+
 	sbml_creation(rhea_sbml, merged_result, metabolic_network)
