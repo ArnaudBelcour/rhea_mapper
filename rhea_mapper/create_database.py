@@ -216,7 +216,7 @@ def download_database(database_folder):
     print('\n')
 
     print('Find Uniprot protein with experimental evidence for Rhea reaction')
-    sparql = SPARQLWrapper("https://sparql.uniprot.org/sparql")
+    sparql = SPARQLWrapper('https://sparql.uniprot.org/sparql')
 
     sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
             PREFIX rh: <http://rdf.rhea-db.org/>

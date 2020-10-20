@@ -44,8 +44,6 @@ def map_ec_to_rhea(annotation_pathname, rhea_ec_pathname, output_pathname):
 
 def orthology_to_uniprot(input_proteome, rhea_proteome, output_folder, orthogroups_result, nb_cpu):
 	work_directory = output_folder + '/orthology/'
-	if os.path.exists(work_directory):
-		shutil.rmtree(work_directory)
 	os.mkdir(work_directory)
 	input_proteome_file = os.path.basename(input_proteome)
 	shutil.copyfile(input_proteome, work_directory+input_proteome_file)
@@ -56,6 +54,7 @@ def orthology_to_uniprot(input_proteome, rhea_proteome, output_folder, orthogrou
 
 	orthodata_path = max(["%s/%s" %(x[0], 'Orthogroups/Orthogroups.tsv') for x in os.walk(work_directory) if 'Orthogroups' in x[1]])
 	shutil.copyfile(orthodata_path, orthogroups_result)
+	shutil.rmtree(work_directory)
 
 
 def map_orthology_to_rhea(rhea_uniprot_pathname, orthofinder_result_pathname, output_pathname):
@@ -147,7 +146,7 @@ def sbml_creation(rhea_sbml_file, rhea_mapping_file, sbml_output_file):
 	# Create sbml file.
 	write_sbml_model(species_model, sbml_output_file)
 
-def manage_genome(input_folder, annotation_pathname, input_proteome, database_folder, output_folder):
+def manage_genome(input_folder, annotation_pathname, input_proteome, database_folder, output_folder, nb_cpu=1):
 	rhea2ec = database_folder + '/rhea2ec.tsv'
 	uniprot_rhea_evidence_fasta = database_folder + '/uniprot_rhea_evidence.fasta'
 	uniprot_rhea_evidence_tsv = database_folder + '/uniprot_rhea_evidence.tsv'
@@ -165,7 +164,7 @@ def manage_genome(input_folder, annotation_pathname, input_proteome, database_fo
 	metabolic_network = output_folder + '/' + input_folder + '.sbml'
 
 	map_ec_to_rhea(annotation_pathname, rhea2ec, mapping_result)
-	orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, 3)
+	orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, nb_cpu)
 	map_orthology_to_rhea(uniprot_rhea_evidence_tsv, orthogroups_result, orthology_result)
 	merge_mapping_orthology(mapping_result, orthology_result, merged_result)
 	sbml_creation(rhea_sbml, merged_result, metabolic_network)

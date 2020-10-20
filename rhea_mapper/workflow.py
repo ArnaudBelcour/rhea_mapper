@@ -2,7 +2,7 @@ import os
 
 from rhea_mapper import create_database, input_parser, rhea_reconstruction
 
-def rhea_mapper_workflow(input_folder, output_folder, database_folder):
+def rhea_mapper_workflow(input_folder, output_folder, database_folder, nb_cpu=1):
 	if not os.path.exists(database_folder):
 		print('Missing database folder, it will be created in ' + database_folder)
 		create_database.download_database(database_folder)
@@ -16,4 +16,4 @@ def rhea_mapper_workflow(input_folder, output_folder, database_folder):
 
 	for input_folder in rhea_mapper_input_data:
 		input_fasta, input_tsv = rhea_mapper_input_data[input_folder]
-		rhea_reconstruction.manage_genome(input_folder, input_tsv, input_fasta, database_folder, output_folder)
+		rhea_reconstruction.manage_genome(input_folder, input_tsv, input_fasta, database_folder, output_folder, nb_cpu)
