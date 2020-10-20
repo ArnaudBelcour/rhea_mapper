@@ -22,4 +22,4 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    workflow.rhea_mapper_workflow(args.f, args.o, args.d, args.c)
+    workflow.rhea_mapper_workflow(args.f, args.o, args.d, args.cpu)
