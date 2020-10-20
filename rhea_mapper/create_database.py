@@ -125,7 +125,7 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	reactions = {}
 	metabolites = {}
 	for row in query_reactions_metabolites:
-		reaction_id, reaction_side, metabolite_id, metabolite_name, metabolite_formula, stoechiometric_coefficient = row
+		reaction_id, reaction_side, metabolite_id, metabolite_name, metabolite_formula, stoichiometric_coefficient = row
 		if reaction_id not in reactions:
 			reaction_id_sbml = reaction_id.split('/')[-1]
 			metabolite_id = metabolite_id.split('/')[-1]
@@ -139,33 +139,33 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 				reactions[reaction_id_sbml] = {}
 
 			# Manage specific stoechiometric coefficient.
-			if str(stoechiometric_coefficient) == "N":
-				stoechiometric_coefficient = 2.0
-			elif str(stoechiometric_coefficient) == "Nplus1":
-				stoechiometric_coefficient = 3.0
-			elif str(stoechiometric_coefficient) == "Nminus1":
-				stoechiometric_coefficient = 1.0
-			elif str(stoechiometric_coefficient) == "2n":
-				stoechiometric_coefficient = 4.0
+			if str(stoichiometric_coefficient) == "N":
+				stoichiometric_coefficient = 2.0
+			elif str(stoichiometric_coefficient) == "Nplus1":
+				stoichiometric_coefficient = 3.0
+			elif str(stoichiometric_coefficient) == "Nminus1":
+				stoichiometric_coefficient = 1.0
+			elif str(stoichiometric_coefficient) == "2n":
+				stoichiometric_coefficient = 4.0
 			else:
-				stoechiometric_coefficient = float(stoechiometric_coefficient)
+				stoichiometric_coefficient = float(stoichiometric_coefficient)
 
 			# Create reation in the direction find by the directed reaction SPARQL query.
 			if reaction_id_sbml in directed_reactions:
 				# Product compounds are assigned to 1.0 in cobra model.
 				if metabolite_id in directed_reactions[reaction_id_sbml]["product"]:
-					reactions[reaction_id_sbml][metabolite_id_sbml] = stoechiometric_coefficient
+					reactions[reaction_id_sbml][metabolite_id_sbml] = stoichiometric_coefficient
 				# Substrate compounds are assigned to -1.0 in cobra model.
 				elif metabolite_id in directed_reactions[reaction_id_sbml]["substrate"]:
-					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoechiometric_coefficient
+					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoichiometric_coefficient
 			#Otherwise use the arbitrary direction.
 			else:
 				# Right compounds are assigned to 1.0 in cobra model.
 				if reaction_side.endswith('_R'):
-					reactions[reaction_id_sbml][metabolite_id_sbml] = stoechiometric_coefficient
+					reactions[reaction_id_sbml][metabolite_id_sbml] = stoichiometric_coefficient
 				# Left compounds are assigned to -1.0 in cobra model.
 				elif reaction_side.endswith('_L'):
-					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoechiometric_coefficient
+					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoichiometric_coefficient
 
 	# Create each reaction and add their compounds.
 	sbml_reactions = []
