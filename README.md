@@ -26,12 +26,11 @@ Python 3 (Python 3.6 is tested). rhea_mapper uses a certain number of Python dep
 * [biopython](https://github.com/biopython/biopython) to handle fasta files.
 * [cobra](https://github.com/opencobra/cobrapy) to create sbml files.
 * [rdflib](https://github.com/RDFLib/rdflib) to load rhea.rdf and query it.
-* [sparqlwrapper](hhttps://github.com/RDFLib/sparqlwrapper) to query Uniprot and Rhea sparql endpoint.
+* [sparqlwrapper](https://github.com/RDFLib/sparqlwrapper) to query Uniprot and Rhea sparql endpoint.
 
-
-
+And another tool:
 * [OrthoFinder](https://github.com/davidemms/OrthoFinder) to find orthologs to uniprot with experimental  evidence linked to rhea. 
-* 
+
 
 ## Installation with pip
 
