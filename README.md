@@ -103,7 +103,7 @@ Rhea files come from the [Rhea download page](ftp://ftp.expasy.org/databases/rhe
 
 uniprot_sprot.fasta is downloaded from the [Uniprot download page](https://www.uniprot.org/downloads). It is the `Reviewed (Swiss-Prot)`.
 
-uniprot_rhea_evidence.* files are created with a SPARQL query on the [Uniprot SPARLQ endpoint](https://sparql.uniprot.org/sparql).
+uniprot_rhea_evidence.* files are created with a SPARQL query on the [Uniprot SPARQL endpoint](https://sparql.uniprot.org/sparql).
 
 ### genome
 
