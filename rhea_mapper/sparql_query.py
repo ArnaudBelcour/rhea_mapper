@@ -146,7 +146,7 @@ def query_uniprot(uniprot_sparql_query_pathanme, database_folder, output_folder,
 
 				?protein owl:disjointWith ?sequence .
 				?sequence rdfs:comment ?aminoacidsequence .
-				VALUES ?protein { {0} }
+				VALUES ?protein {{ {0} }}
             }""".format(' '.join(uri_missing_proteins)))
 
 	# Parse output.
