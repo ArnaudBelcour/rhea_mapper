@@ -70,7 +70,13 @@ Requires: Orthofinder for genome if you provide a fasta
 
 ### database
 
-This command downloads and creates the files needed by rhea_mapper to work.
+This command downloads and creates the files needed by rhea_mapper to work. As it downlaods files, this funciton requires an internet connection.
+
+By using the RDF file of Rhea, rhea_mapper will create a SBMl file, with some specificity:
+
+- the direction of reactions can be: arbitrary, follow MetaCyc reaction direction or follow KEGG reaction direction.
+- for the variable stoichiometric coefficient (n, n-1, n+1, 2n) in reaction, n has been set to 2.
+- genes linked to Rhea reactions with experimental evidence are associated to these reactions.
 
 ````
 usage: rhea_mapper database [-h] -d DATABASE
@@ -82,6 +88,22 @@ optional arguments:
   -d DATABASE, --database DATABASE
                         Database folder, if not existing it will be created
 ````
+
+It will create an output_folder containing:
+
+- rhea.rdf: the RDF file of Rhea database.
+- rhea2ec.tsv: mapping between Rhea reaction and EC number.
+- rhea2uniprot_sprot.tsv: mapping between Rhea reaction and Uniprot protein ID.
+- uniprot_sprot.fasta: fasta containg all amino-acids sequences from Swissprot.
+- uniprot_rhea_evidence.tsv: tsv file containing Uniprot protein ID linked to Rhea reaction with experimental evidence.
+- uniprot_rhea_evidence.fasta: fasta file containing protein linked to Rhea reaction with experimental evidence.
+- rhea.sbml: SBML file created by rhea_mapper using the rhea.rdf file and the uniprot_rhea_evidence.tsv (to have gene association).
+
+Rhea files come from the [Rhea download page](ftp://ftp.expasy.org/databases/rhea/rdf/).
+
+uniprot_sprot.fasta is downloaded from the [Uniprot download page](https://www.uniprot.org/downloads). It is the `Reviewed (Swiss-Prot)`.
+
+uniprot_rhea_evidence.* files are created with a SPARQL query on the [Uniprot SPARLQ endpoint](https://sparql.uniprot.org/sparql).
 
 ### genome
 
@@ -109,6 +131,36 @@ optional arguments:
                         Database folder, if not existing it will be created
   -c CPU, --cpu CPU     cpu number for multi-process
 ````
+
+The structure of the input_folder is:
+
+````
+    input_folder
+        ├── organism_1
+        │   └── organism_1.gbk
+        ├── organism_2
+        │   └── organism_2.tsv
+        │   └── organism_2.fasta
+        ├── organism_3
+        │   └── organism_3.tsv
+        ├── organism_4
+        │   └── organism_4.fasta
+        ..
+        └── organism_n
+            └── organism_n.gbk
+````
+
+GenBank files will be converted into the format use by `rhea_mapper genome` meaning a tsv file + a fasta file. It is also possible to give only a fasta file or a tsv file.
+
+The fasta file must contain amino-acids sequences.
+
+The tsv file must be structured like:
+
+| gene   | Ec_Number |
+|--------|-----------|
+| gene_1 | X.X.X.X   |
+| ...    |           |
+| gene_n | X.X.X.X   |
 
 ### sparql
 
