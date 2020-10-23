@@ -1,6 +1,8 @@
 import csv
 import os
 import re
+import json
+import urllib.request
 
 from rdflib import Graph
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -9,11 +11,11 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 try:
-    # Import to be compatible with biopython version lesser than 1.78
-    from Bio.Alphabet.IUPAC import protein
+	# Import to be compatible with biopython version lesser than 1.78
+	from Bio.Alphabet.IUPAC import protein
 except ImportError:
-    # Exception to be compatible with biopython version superior to 1.78
-    protein = None
+	# Exception to be compatible with biopython version superior to 1.78
+	protein = None
 
 from cobra import Model
 from cobra.io import read_sbml_model, write_sbml_model
@@ -105,7 +107,7 @@ def rhea_sbml_creation(rhea_sbml_file, output_folder):
 	write_sbml_model(species_model, output_folder+'/sparql_query.sbml')
 
 
-def query_uniprot(uniprot_sparql_query_pathanme, database_folder, output_folder, nb_cpu):
+def query_uniprot_protein(uniprot_sparql_query_pathanme, database_folder, output_folder, nb_cpu):
 	uniprot_sparql_endpoint = 'https://sparql.uniprot.org/sparql'
 	sparql = SPARQLWrapper(uniprot_sparql_endpoint)
 
@@ -139,15 +141,15 @@ def query_uniprot(uniprot_sparql_query_pathanme, database_folder, output_folder,
 	uri_missing_proteins = ['up:'+prot_id for prot_id in missing_proteins]
 
 	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
-            PREFIX rh: <http://rdf.rhea-db.org/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+			PREFIX rh: <http://rdf.rhea-db.org/>
+			PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-            SELECT distinct ?protein ?aminoacidsequence WHERE {
+			SELECT distinct ?protein ?aminoacidsequence WHERE {
 
 				?protein owl:disjointWith ?sequence .
 				?sequence rdfs:comment ?aminoacidsequence .
 				VALUES ?protein {{ {0} }}
-            }""".format(' '.join(uri_missing_proteins)))
+			}""".format(' '.join(uri_missing_proteins)))
 
 	# Parse output.
 	sparql.setReturnFormat(JSON)
@@ -169,3 +171,36 @@ def query_uniprot(uniprot_sparql_query_pathanme, database_folder, output_folder,
 	SeqIO.write(fasta_records, output_folder+'/sparql_query.fasta', 'fasta')
 
 	rhea_reconstruction.manage_genome('sparql_query', None, output_folder+'/sparql_query.fasta', database_folder, output_folder, nb_cpu)
+
+def group_name_to_sparql_query(group_name, sparql_query_pathname):
+	group_name_url = group_name.replace(' ', '%20')
+
+	url = 'https://www.ebi.ac.uk/ena/data/taxonomy/v1/taxon/scientific-name/' + group_name_url
+	url_response = urllib.request.urlopen(url)
+	url_data = url_response.read()
+	url_encoding = url_response.info().get_content_charset('utf-8')
+	url_json = json.loads(url_data.decode(url_encoding))
+
+	taxon_id = str(url_json['taxId'])
+	if taxon_id:
+		taxon_id_uri = '<urn:lsid:uniprot.org:taxonomy:' + taxon_id + '>'
+
+		organism_sparql_query = """PREFIX :      <urn:lsid:uniprot.org:ontology:>
+		PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+		PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+		PREFIX taxon: <urn:lsid:uniprot.org:taxonomy:>
+
+		SELECT  ?protein
+		{
+		?protein rdf:type :Protein .
+		?protein up:organism {0} .
+		?protein up:reviewed true .
+		}""".format(taxon_id_uri)
+
+		with open(sparql_query_pathname, 'w') as output_file:
+			output_file.write(organism_sparql_query)
+		return True
+
+	else:
+		print('Issue with taxon ID, not ofund for ' + group_name)
+		return False

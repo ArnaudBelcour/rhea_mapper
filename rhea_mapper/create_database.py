@@ -13,11 +13,11 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 
 def urllib_reporthook(count, block_size, total_size):
-    downloaded_size = int(count * block_size) / (1024 * 1024)
-    percent = min(int(count*block_size*100/total_size),100)
-    total_size_show = total_size / (1024 * 1024)
-    sys.stdout.write("\rDownloading: {0}%, {1:.2f} MB on {2:.2f} MB".format(percent, downloaded_size, total_size_show))
-    sys.stdout.flush()
+	downloaded_size = int(count * block_size) / (1024 * 1024)
+	percent = min(int(count*block_size*100/total_size),100)
+	total_size_show = total_size / (1024 * 1024)
+	sys.stdout.write("\rDownloading: {0}%, {1:.2f} MB on {2:.2f} MB".format(percent, downloaded_size, total_size_show))
+	sys.stdout.flush()
 
 
 def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
@@ -188,94 +188,93 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 
 
 def download_database(database_folder):
-    if not os.path.exists(database_folder):
-        os.mkdir(database_folder)
+	if not os.path.exists(database_folder):
+		os.mkdir(database_folder)
 
-    print('Download Rhea RDF file')
-    urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz', database_folder + '/rhea.rdf.gz', reporthook=urllib_reporthook)
-    with gzip.open(database_folder + '/rhea.rdf.gz', 'rb') as f_in:
-        with open(database_folder + '/rhea.rdf', 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    os.remove(database_folder + '/rhea.rdf.gz')
-    print('\n')
+	print('Download Rhea RDF file')
+	urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz', database_folder + '/rhea.rdf.gz', reporthook=urllib_reporthook)
+	with gzip.open(database_folder + '/rhea.rdf.gz', 'rb') as f_in:
+		with open(database_folder + '/rhea.rdf', 'wb') as f_out:
+			shutil.copyfileobj(f_in, f_out)
+	os.remove(database_folder + '/rhea.rdf.gz')
+	print('\n')
 
-    print('Download Rhea rhea2ec file')
-    urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/tsv/rhea2ec.tsv', database_folder + '/rhea2ec.tsv', reporthook=urllib_reporthook)
-    print('\n')
+	print('Download Rhea rhea2ec file')
+	urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/tsv/rhea2ec.tsv', database_folder + '/rhea2ec.tsv', reporthook=urllib_reporthook)
+	print('\n')
 
-    print('Download Rhea rhea2uniprot file')
-    urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/tsv/rhea2uniprot%5Fsprot.tsv', database_folder + '/rhea2uniprot_sprot.tsv', reporthook=urllib_reporthook)
-    print('\n')
+	print('Download Rhea rhea2uniprot file')
+	urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/tsv/rhea2uniprot%5Fsprot.tsv', database_folder + '/rhea2uniprot_sprot.tsv', reporthook=urllib_reporthook)
+	print('\n')
 
-    print('Download Reviewed (Swiss-Prot) fasta file')
-    urllib.request.urlretrieve('ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz', database_folder + '/uniprot_sprot.fasta.gz', reporthook=urllib_reporthook)
-    with gzip.open(database_folder + '/uniprot_sprot.fasta.gz', 'rb') as f_in:
-        with open(database_folder + '/uniprot_sprot.fasta', 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    os.remove(database_folder + '/uniprot_sprot.fasta.gz')
-    print('\n')
+	print('Download Reviewed (Swiss-Prot) fasta file')
+	urllib.request.urlretrieve('ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz', database_folder + '/uniprot_sprot.fasta.gz', reporthook=urllib_reporthook)
+	with gzip.open(database_folder + '/uniprot_sprot.fasta.gz', 'rb') as f_in:
+		with open(database_folder + '/uniprot_sprot.fasta', 'wb') as f_out:
+			shutil.copyfileobj(f_in, f_out)
+	os.remove(database_folder + '/uniprot_sprot.fasta.gz')
+	print('\n')
 
-    print('Find Uniprot protein with experimental evidence for Rhea reaction')
-    sparql = SPARQLWrapper('https://sparql.uniprot.org/sparql')
+	print('Find Uniprot protein with experimental evidence for Rhea reaction')
+	sparql = SPARQLWrapper('https://sparql.uniprot.org/sparql')
 
-    sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
-            PREFIX rh: <http://rdf.rhea-db.org/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
+			PREFIX rh: <http://rdf.rhea-db.org/>
+			PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-            SELECT distinct ?rhea_reaction ?protein ?protein_name WHERE {
+			SELECT distinct ?rhea_reaction ?protein ?protein_name WHERE {
 
-            # ECO 269 is experimental evidence
-            BIND (<http://purl.obolibrary.org/obo/ECO_0000269> as ?evidence)
-            ?protein up:recommendedName/up:fullName ?protein_name .
-            ?protein up:reviewed true ;
-                up:annotation ?a ;
-                up:attribution ?attribution .
-            ?a a up:Catalytic_Activity_Annotation ;
-                up:catalyticActivity ?ca .
-            ?ca up:catalyzedReaction ?rhea_reaction .
-            
-            [] rdf:subject ?a ;
-                rdf:predicate up:catalyticActivity ;
-                rdf:object ?ca ;
-                up:attribution ?attribution .
-            ?attribution up:evidence ?evidence .
-            }""")
+			# ECO 269 is experimental evidence
+			BIND (<http://purl.obolibrary.org/obo/ECO_0000269> as ?evidence)
+			?protein up:recommendedName/up:fullName ?protein_name .
+			?protein up:reviewed true ;
+				up:annotation ?a ;
+				up:attribution ?attribution .
+			?a a up:Catalytic_Activity_Annotation ;
+				up:catalyticActivity ?ca .
+			?ca up:catalyzedReaction ?rhea_reaction .
 
-    # Parse output.
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+			[] rdf:subject ?a ;
+				rdf:predicate up:catalyticActivity ;
+				rdf:object ?ca ;
+				up:attribution ?attribution .
+			?attribution up:evidence ?evidence .
+			}""")
 
-    # Create mapping file uniprot ID -> Rhea Id with evidence.
-    mapping_prot_rhea = {}
-    for result in results["results"]["bindings"]:
-        protein_id = result["protein"]["value"].split('/')[-1]
-        reaction_id = result["rhea_reaction"]["value"].split('/')[-1]
-        protein_name = result["protein_name"]["value"].split('/')[-1]
-        if protein_id not in mapping_prot_rhea:
-            mapping_prot_rhea[protein_id] = ([reaction_id], protein_name)
-        else:
-            if reaction_id not in mapping_prot_rhea[protein_id][0]:
-                mapping_prot_rhea[protein_id][0].append(reaction_id)
+	# Parse output.
+	sparql.setReturnFormat(JSON)
+	results = sparql.query().convert()
 
-    with open(database_folder + '/uniprot_rhea_evidence.tsv', 'w') as output_file:
-        csvwriter = csv.writer(output_file, delimiter ='\t')
-        csvwriter.writerow(["protein", "rhea_reaction", "protein_name"])
-        for protein_id in mapping_prot_rhea:
-            reaction_ids = mapping_prot_rhea[protein_id][0]
-            protein_name = mapping_prot_rhea[protein_id][1]
-            csvwriter.writerow([protein_id, ','.join(reaction_ids), protein_name])
-    print('\n')
+	# Create mapping file uniprot ID -> Rhea Id with evidence.
+	mapping_prot_rhea = {}
+	for result in results["results"]["bindings"]:
+		protein_id = result["protein"]["value"].split('/')[-1]
+		reaction_id = result["rhea_reaction"]["value"].split('/')[-1]
+		protein_name = result["protein_name"]["value"].split('/')[-1]
+		if protein_id not in mapping_prot_rhea:
+			mapping_prot_rhea[protein_id] = ([reaction_id], protein_name)
+		else:
+			if reaction_id not in mapping_prot_rhea[protein_id][0]:
+				mapping_prot_rhea[protein_id][0].append(reaction_id)
 
-    print('Create fasta containing proteins with experimental evidence for Rhea reactions')
-    records = []
-    for record in SeqIO.parse(database_folder + '/uniprot_sprot.fasta', 'fasta'):
-        record.id = record.id.split('|')[1]
-        record.description = ''
-        if record.id in mapping_prot_rhea:
-            records.append(record)
-    SeqIO.write(records, database_folder+'/uniprot_rhea_evidence.fasta', 'fasta')
-    print('\n')
+	with open(database_folder + '/uniprot_rhea_evidence.tsv', 'w') as output_file:
+		csvwriter = csv.writer(output_file, delimiter ='\t')
+		csvwriter.writerow(["protein", "rhea_reaction", "protein_name"])
+		for protein_id in mapping_prot_rhea:
+			reaction_ids = mapping_prot_rhea[protein_id][0]
+			protein_name = mapping_prot_rhea[protein_id][1]
+			csvwriter.writerow([protein_id, ','.join(reaction_ids), protein_name])
+	print('\n')
 
-    print('Create Rhea SBMl file')
-    rhea_to_sbml(database_folder + '/rhea.rdf', database_folder + '/uniprot_rhea_evidence.tsv', database_folder + '/rhea.sbml')
+	print('Create fasta containing proteins with experimental evidence for Rhea reactions')
+	records = []
+	for record in SeqIO.parse(database_folder + '/uniprot_sprot.fasta', 'fasta'):
+		record.id = record.id.split('|')[1]
+		record.description = ''
+		if record.id in mapping_prot_rhea:
+			records.append(record)
+	SeqIO.write(records, database_folder+'/uniprot_rhea_evidence.fasta', 'fasta')
+	print('\n')
 
+	print('Create Rhea SBMl file')
+	rhea_to_sbml(database_folder + '/rhea.rdf', database_folder + '/uniprot_rhea_evidence.tsv', database_folder + '/rhea.sbml')
