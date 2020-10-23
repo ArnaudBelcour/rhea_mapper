@@ -20,13 +20,22 @@ def rhea_mapper_workflow(input_folder, output_folder, database_folder, nb_cpu=1)
 		rhea_reconstruction.manage_genome(input_folder, input_tsv, input_fasta, database_folder, output_folder, nb_cpu)
 
 
-def sparql_query_workflow(user_sparql_query, output_folder, database_folder, endpoint, nb_cpu):
+def sparql_query_workflow(user_sparql_query, organism, output_folder, database_folder, endpoint, nb_cpu):
 	if not os.path.exists(output_folder):
 		print('Create output folder at ' + output_folder)
 		os.mkdir(output_folder)
+		os.mkdir(output_folder + '/tmp')
+
+	if organism:
+		if user_sparql_query:
+			print('--organism must be used without -s/--sparql argument as rhea_mapper will try to create a sparql query from the organism name')
+		user_sparql_query = output_folder+'/'+organism+'.rq'
+		sparql_query.group_name_to_sparql_query(organism, output_folder+'/'+organism+'.rq')
+		sparql_query.query_uniprot_protein(output_folder+'/'+organism+'.rq', database_folder, output_folder, nb_cpu)
+		return
 
 	if endpoint == 'uniprot':
-		sparql_query.query_uniprot(user_sparql_query, database_folder, output_folder, nb_cpu)
+		sparql_query.query_uniprot_protein(user_sparql_query, database_folder, output_folder, nb_cpu)
 	elif endpoint == 'rhea':
 		sparql_query.query_rhea(user_sparql_query, database_folder, output_folder)
 		sparql_query.rhea_sbml_creation(database_folder+'/rhea.sbml', output_folder)
@@ -39,6 +48,7 @@ def sbml_from_list(element_pathname, database_folder, output_folder, database, n
 	if not os.path.exists(output_folder):
 		print('Create output folder at ' + output_folder)
 		os.mkdir(output_folder)
+		os.mkdir(output_folder + '/tmp')
 
 	if database == 'uniprot':
 		sbml_from_file.uniprot_from_file(element_pathname, database_folder+'/rhea.sbml', database_folder, output_folder, nb_cpu)

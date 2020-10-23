@@ -133,38 +133,54 @@ def query_uniprot_protein(uniprot_sparql_query_pathanme, database_folder, output
 
 	proteins_ids = set(proteins_ids)
 
-	proteins_in_database = {record.id: record
+	proteins_in_database = {record.id.split('|')[1]: record
 							for record in SeqIO.parse(database_folder+'/uniprot_sprot.fasta', 'fasta')
-							if record.id in proteins_ids}
+							if record.id.split('|')[1] in proteins_ids}
+
+	for record_id in proteins_in_database:
+		proteins_in_database[record_id].id = proteins_in_database[record_id].id.split('|')[1]
 
 	missing_proteins = list(set(proteins_ids) - set(list(proteins_in_database.keys())))
-	uri_missing_proteins = ['up:'+prot_id for prot_id in missing_proteins]
 
-	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
-			PREFIX rh: <http://rdf.rhea-db.org/>
-			PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+	if missing_proteins != []:
+		uri_missing_proteins = ['up:'+prot_id for prot_id in missing_proteins]
 
-			SELECT distinct ?protein ?aminoacidsequence WHERE {
+		missing_proteins_query = """PREFIX up: <http://purl.uniprot.org/core/>
+				PREFIX rh: <http://rdf.rhea-db.org/>
+				PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-				?protein owl:disjointWith ?sequence .
-				?sequence rdfs:comment ?aminoacidsequence .
-				VALUES ?protein {{ {0} }}
-			}""".format(' '.join(uri_missing_proteins)))
+				SELECT distinct ?protein ?aminoacidsequence WHERE {{
 
-	# Parse output.
-	sparql.setReturnFormat(JSON)
-	results = sparql.query().convert()
+					?protein owl:disjointWith ?sequence .
+					?sequence rdfs:comment ?aminoacidsequence .
+					# get EC associated to protein
+					#?protein up:enzyme ?enzyme .
+					# Get Rhea reaction linked to protein
+					#?protein up:annotation ?a .
+					#?a a up:Catalytic_Activity_Annotation .
+					#?a up:catalyticActivity ?ca .
+					#?ca up:catalyzedReaction ?reaction .
+					VALUES ?protein {{ {0} }}
+				}}""".format(' '.join(uri_missing_proteins))
 
-	missing_proteins_records = []
-	for result in results['results']['bindings']:
-		protein_id = result['protein']['value'].split('/')[-1]
-		protein_seq = result['aminoacidsequence']['value']
-		missing_proteins_records.append(Seq(protein_seq))
-		if protein:
-			fasta_record = SeqRecord(Seq(protein_seq, protein), id=protein_id, description='')
-		else:
-			fasta_record = SeqRecord(Seq(protein_seq), id=protein_id, description='')
-		missing_proteins_records.append(fasta_record)
+		sparql.setQuery(missing_proteins_query)
+
+		# Parse output.
+		sparql.setReturnFormat(JSON)
+		results = sparql.query().convert()
+
+		missing_proteins_records = []
+		for result in results['results']['bindings']:
+			protein_id = result['protein']['value'].split('/')[-1]
+			protein_seq = result['aminoacidsequence']['value']
+			missing_proteins_records.append(Seq(protein_seq))
+			if protein:
+				fasta_record = SeqRecord(Seq(protein_seq, protein), id=protein_id, description='')
+			else:
+				fasta_record = SeqRecord(Seq(protein_seq), id=protein_id, description='')
+			missing_proteins_records.append(fasta_record)
+	else:
+		missing_proteins_records = []
 
 	fasta_records = list(proteins_in_database.values()) + missing_proteins_records
 
@@ -179,23 +195,23 @@ def group_name_to_sparql_query(group_name, sparql_query_pathname):
 	url_response = urllib.request.urlopen(url)
 	url_data = url_response.read()
 	url_encoding = url_response.info().get_content_charset('utf-8')
-	url_json = json.loads(url_data.decode(url_encoding))
+	url_json = json.loads(url_data.decode(url_encoding))[0]
 
 	taxon_id = str(url_json['taxId'])
 	if taxon_id:
-		taxon_id_uri = '<urn:lsid:uniprot.org:taxonomy:' + taxon_id + '>'
+		taxon_id_uri = 'taxon:' + taxon_id + ''
 
-		organism_sparql_query = """PREFIX :      <urn:lsid:uniprot.org:ontology:>
-		PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-		PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
-		PREFIX taxon: <urn:lsid:uniprot.org:taxonomy:>
+		organism_sparql_query = """PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+		PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
+		PREFIX up: <http://purl.uniprot.org/core/>
 
-		SELECT  ?protein
-		{
-		?protein rdf:type :Protein .
-		?protein up:organism {0} .
-		?protein up:reviewed true .
-		}""".format(taxon_id_uri)
+		SELECT DISTINCT ?protein
+		{{
+		?protein a up:Protein .
+		?protein up:organism ?organism .
+		?protein up:reviewed True.
+		?organism rdfs:subClassOf {0} .
+		}}""".format(taxon_id_uri)
 
 		with open(sparql_query_pathname, 'w') as output_file:
 			output_file.write(organism_sparql_query)
