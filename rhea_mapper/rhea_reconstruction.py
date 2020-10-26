@@ -31,7 +31,6 @@ def map_ec_to_rhea(annotation_pathname, rhea_ec_pathname, output_pathname):
 			if len(line) > 0:
 				rhea_ecs[line[3]] = line[0]
 
-
 	gene_rheas = {}
 	for gene_id in gene_ecs:
 		gene_rheas[gene_id] = [rhea_ecs[ec] for ec in gene_ecs[gene_id] if ec in rhea_ecs]

@@ -1,3 +1,4 @@
+import csv
 import os
 
 from rhea_mapper import create_database, input_parser, rhea_reconstruction, sbml_from_file, sparql_query
@@ -29,9 +30,8 @@ def sparql_query_workflow(user_sparql_query, organism, output_folder, database_f
 	if organism:
 		if user_sparql_query:
 			print('--organism must be used without -s/--sparql argument as rhea_mapper will try to create a sparql query from the organism name')
-		user_sparql_query = output_folder+'/'+organism+'.rq'
-		sparql_query.group_name_to_sparql_query(organism, output_folder+'/'+organism+'.rq')
-		sparql_query.query_uniprot_protein(output_folder+'/'+organism+'.rq', database_folder, output_folder, nb_cpu)
+			return
+		sparql_query.query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_cpu)
 		return
 
 	if endpoint == 'uniprot':
