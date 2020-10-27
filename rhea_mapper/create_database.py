@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 import urllib.request
+import zipfile
 
 from Bio import SeqIO
 from cobra import Model, Reaction, Metabolite
@@ -215,18 +216,26 @@ def download_database(database_folder):
 	os.remove(database_folder + '/uniprot_sprot.fasta.gz')
 	print('\n')
 
-	print('Find Uniprot protein with experimental evidence for Rhea reaction')
+	print('Download Reviewed NCBi taxonomy file')
+	urllib.request.urlretrieve('ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip', database_folder + '/taxdmp.zip', reporthook=urllib_reporthook)
+
+	with zipfile.ZipFile('taxdmp.zip',"r") as zip_taxonomy:
+		zip_taxonomy.extract('names.dmp', database_folder)
+		os.rename(database_folder+'/names.dmp', database_folder+'/ncbi_taxonomy.dmp')
+	os.remove(database_folder + '/taxdmp.zip')
+	print('\n')
+
 	sparql = SPARQLWrapper('https://sparql.uniprot.org/sparql')
 
+	print('Find Uniprot protein with evidence for Rhea reaction')
 	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
 			PREFIX rh: <http://rdf.rhea-db.org/>
 			PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-			SELECT distinct ?rhea_reaction ?protein ?protein_name WHERE {
+			SELECT DISTINCT ?rhea_reaction ?protein WHERE {{
 
 			# ECO 269 is experimental evidence
 			BIND (<http://purl.obolibrary.org/obo/ECO_0000269> as ?evidence)
-			?protein up:recommendedName/up:fullName ?protein_name .
 			?protein up:reviewed true ;
 				up:annotation ?a ;
 				up:attribution ?attribution .
@@ -239,7 +248,7 @@ def download_database(database_folder):
 				rdf:object ?ca ;
 				up:attribution ?attribution .
 			?attribution up:evidence ?evidence .
-			}""")
+			}}""")
 
 	# Parse output.
 	sparql.setReturnFormat(JSON)
@@ -250,28 +259,112 @@ def download_database(database_folder):
 	for result in results["results"]["bindings"]:
 		protein_id = result["protein"]["value"].split('/')[-1]
 		reaction_id = result["rhea_reaction"]["value"].split('/')[-1]
-		protein_name = result["protein_name"]["value"].split('/')[-1]
 		if protein_id not in mapping_prot_rhea:
-			mapping_prot_rhea[protein_id] = ([reaction_id], protein_name)
+			mapping_prot_rhea[protein_id] = [reaction_id]
 		else:
-			if reaction_id not in mapping_prot_rhea[protein_id][0]:
-				mapping_prot_rhea[protein_id][0].append(reaction_id)
+			mapping_prot_rhea[protein_id].append(reaction_id)
 
 	with open(database_folder + '/uniprot_rhea_evidence.tsv', 'w') as output_file:
 		csvwriter = csv.writer(output_file, delimiter ='\t')
-		csvwriter.writerow(["protein", "rhea_reaction", "protein_name"])
+		csvwriter.writerow(["protein", "rhea_reaction"])
 		for protein_id in mapping_prot_rhea:
-			reaction_ids = mapping_prot_rhea[protein_id][0]
-			protein_name = mapping_prot_rhea[protein_id][1]
-			csvwriter.writerow([protein_id, ','.join(reaction_ids), protein_name])
+			csvwriter.writerow([protein_id, ','.join(mapping_prot_rhea[protein_id])])
 	print('\n')
 
+	print('Find Uniprot protein with evidence for EC number')
+	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
+			PREFIX rh: <http://rdf.rhea-db.org/>
+			PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+			SELECT DISTINCT ?protein ?enzyme WHERE {{
+				# ECO 269 is experimental evidence
+				BIND (<http://purl.obolibrary.org/obo/ECO_0000269> as ?evidence)
+
+				?protein a up:Protein .
+				?protein up:reviewed true.
+				?protein up:enzyme ?enzyme .
+
+				[] a rdf:Statement ;
+						rdf:subject ?protein ;
+						rdf:predicate up:enzyme ;
+						rdf:object ?enzyme ;
+						up:attribution ?attribution .
+				?attribution up:evidence ?evidence .
+			}}""")
+
+	# Parse output.
+	sparql.setReturnFormat(JSON)
+	results = sparql.query().convert()
+
+	# Create mapping file uniprot ID -> Rhea Id with evidence.
+	mapping_prot_ec = {}
+	for result in results["results"]["bindings"]:
+		protein_id = result["protein"]["value"].split('/')[-1]
+		enzyme_id = result["enzyme"]["value"].split('/')[-1]
+		if protein_id not in mapping_prot_ec:
+			mapping_prot_ec[protein_id] = [enzyme_id]
+		else:
+			mapping_prot_ec[protein_id].append(enzyme_id)
+
+	with open(database_folder + '/uniprot_ec_evidence.tsv', 'w') as output_file:
+		csvwriter = csv.writer(output_file, delimiter ='\t')
+		csvwriter.writerow(["protein", "EC_Number"])
+		for protein_id in mapping_prot_ec:
+			csvwriter.writerow([protein_id, ','.join(mapping_prot_ec[protein_id])])
+	print('\n')
+
+	print('Find Uniprot protein with evidence for GO term')
+	sparql.setQuery("""PREFIX up: <http://purl.uniprot.org/core/>
+	PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+	SELECT DISTINCT ?protein ?goTerm
+	WHERE
+	{{
+		# ECO 269 is experimental evidence
+		BIND (<http://purl.obolibrary.org/obo/ECO_0000269> as ?evidence)
+
+		?protein a up:Protein .
+		?protein up:classifiedWith ?goTerm .
+		Filter (contains(str(?goTerm),'http://purl.obolibrary.org/ob'))
+
+		[] a rdf:Statement ;
+				rdf:subject ?protein ;
+				rdf:predicate up:classifiedWith ;
+				rdf:object ?goTerm ;
+				up:attribution ?attribution .
+		?attribution up:evidence ?evidence .
+	}}""")
+	# Parse output.
+	sparql.setReturnFormat(JSON)
+	results = sparql.query().convert()
+
+	# Create mapping file uniprot ID -> Rhea Id with evidence.
+	mapping_prot_go = {}
+	for result in results["results"]["bindings"]:
+		protein_id = result["protein"]["value"].split('/')[-1]
+		goTerm_id = result["goTerm"]["value"].split('/')[-1]
+		if protein_id not in mapping_prot_go:
+			mapping_prot_go[protein_id] = [goTerm_id]
+		else:
+			mapping_prot_go[protein_id].append(goTerm_id)
+
+	with open(database_folder + '/uniprot_go_evidence.tsv', 'w') as output_file:
+		csvwriter = csv.writer(output_file, delimiter ='\t')
+		csvwriter.writerow(["protein", "goTerm"])
+		for protein_id in mapping_prot_go:
+			csvwriter.writerow([protein_id, ','.join(mapping_prot_go[protein_id])])
+	print('\n')
+
+	annotated_proteins = []
+	annotated_proteins.extend([prot for prot in mapping_prot_rhea])
+	annotated_proteins.extend([prot for prot in mapping_prot_ec])
+	annotated_proteins.extend([prot for prot in mapping_prot_go])
+	annotated_proteins = set(annotated_proteins)
 	print('Create fasta containing proteins with experimental evidence for Rhea reactions')
 	records = []
 	for record in SeqIO.parse(database_folder + '/uniprot_sprot.fasta', 'fasta'):
 		record.id = record.id.split('|')[1]
 		record.description = ''
-		if record.id in mapping_prot_rhea:
+		if record.id in annotated_proteins:
 			records.append(record)
 	SeqIO.write(records, database_folder+'/uniprot_rhea_evidence.fasta', 'fasta')
 	print('\n')

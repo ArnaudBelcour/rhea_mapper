@@ -80,6 +80,16 @@ def main():
 		required=False,
 	)
 
+	parent_parser_e = argparse.ArgumentParser(add_help=False)
+	parent_parser_e.add_argument(
+		"-e",
+		"--endpoint",
+		dest="endpoint",
+		help="Endpoint either 'uniprot' or 'rhea' or 'rhea_endpoint",
+		required=True,
+	)
+
+	# Taxonomy command argument
 	parent_parser_org = argparse.ArgumentParser(add_help=False)
 	parent_parser_org.add_argument(
 		"--organism",
@@ -88,13 +98,12 @@ def main():
 		required=False,
 	)
 
-	parent_parser_e = argparse.ArgumentParser(add_help=False)
-	parent_parser_e.add_argument(
-		"-e",
-		"--endpoint",
-		dest="endpoint",
-		help="Endpoint either 'uniprot' or 'rhea' or 'rhea_endpoint",
-		required=True,
+	parent_parser_tax = argparse.ArgumentParser(add_help=False)
+	parent_parser_tax.add_argument(
+		"--taxonomy",
+		dest="taxonomy",
+		help="TSV file with taxonomy name of organism",
+		required=False,
 	)
 
 	# From_file command argument
@@ -145,10 +154,20 @@ def main():
 		"sparql",
 		help="Using a SPARQL query for reaction ID on Rhea or protein ID on Uniprot, create the corresponding metabolic network",
 		parents=[
-			parent_parser_s, parent_parser_e, parent_parser_d, parent_parser_o, parent_parser_c, parent_parser_org
+			parent_parser_s, parent_parser_e, parent_parser_d, parent_parser_o, parent_parser_c
 		],
 		description=
 		"Using a SPARQL query for reaction ID on Rhea or protein ID on Uniprot, create the corresponding metabolic network"
+	)
+
+	taxonomy_parser = subparsers.add_parser(
+		"taxonomy",
+		help="With a taxonomy, query Uniprot to create the corresponding metabolic network",
+		parents=[
+			parent_parser_d, parent_parser_o, parent_parser_c, parent_parser_org, parent_parser_tax
+		],
+		description=
+		"With a taxonomy, query Uniprot to create the corresponding metabolic network"
 	)
 
 	list_parser = subparsers.add_parser(
@@ -177,13 +196,12 @@ def main():
 		workflow.rhea_mapper_workflow(args.folder, args.output, args.database, args.cpu)
 	elif args.cmd == "sparql":
 		if args.endpoint in ['uniprot', 'rhea', 'rhea_endpoint']:
-			if args.sparql and args.organism:
-				print('--organism must be used without -s/--sparql argument as rhea_mapper will try to create a sparql query from the organism name.')
-				sys.exit()
-			workflow.sparql_query_workflow(args.sparql, args.organism, args.output, args.database, args.endpoint, args.cpu)
+			workflow.sparql_query_workflow(args.sparql, args.output, args.database, args.endpoint, args.cpu)
 		else:
 			print("Invalid endpoint given, either 'uniprot' or 'rhea'")
 			sys.exit()
+	elif args.cmd == "taxonomy":
+		workflow.taxonomy_query_workflow(args.organism, args.taxonomy, args.output, args.database, args.cpu)
 	elif args.cmd == "from_file":
 		if args.reference in ['uniprot', 'rhea']:
 			workflow.sbml_from_list(args.list, args.database, args.output, args.reference, args.cpu)
