@@ -1,6 +1,8 @@
 import csv
 import gzip
+import json
 import os
+import pkg_resources
 import sys
 import shutil
 import urllib.request
@@ -9,8 +11,14 @@ import zipfile
 from Bio import SeqIO
 from cobra import Model, Reaction, Metabolite
 from cobra.io import write_sbml_model
+from datetime import datetime
 from rdflib import Graph
 from SPARQLWrapper import SPARQLWrapper, JSON
+
+from Bio import __version__ as biopython_version
+from cobra import __version__ as cobra_version
+from rdflib import __version__ as rdflib_version
+from SPARQLWrapper import __version__ as sparqlwrapper_version
 
 
 def urllib_reporthook(count, block_size, total_size):
@@ -191,6 +199,39 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 def download_database(database_folder):
 	if not os.path.exists(database_folder):
 		os.mkdir(database_folder)
+
+	# Get Rhea release version
+	rhearesponse = urllib.request.urlopen('ftp://ftp.expasy.org/databases/rhea/rhea-release.properties')
+	rhea_lines = rhearesponse.readlines()
+	rhea_release_number = rhea_lines[0].decode('utf-8').split('=')[1].replace('\n','')
+	rhea_release_date = rhea_lines[1].decode('utf-8').split('=')[1].replace('\n','')
+
+	# Get Uniprot release version
+	uniprot_response = urllib.request.urlopen('ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/reldate.txt')
+	uniprot_lines = uniprot_response.readlines()
+	swissprot_release_number = uniprot_lines[1].decode('utf-8').split(' ')[2].replace('\n','')
+	swissprot_release_date = uniprot_lines[1].decode('utf-8').split(' ')[4].replace('\n','')
+	trembl_release_number = uniprot_lines[2].decode('utf-8').split(' ')[2].replace('\n','')
+	trembl_release_date = uniprot_lines[2].decode('utf-8').split(' ')[4].replace('\n','')
+
+	now = datetime.now()
+	download_date = now.strftime('%d/%m/%Y')
+
+	rhea_mapper_dependencies = ['cobra=='+cobra_version, 'biopython=='+biopython_version, 'rdflib=='+rdflib_version, 'sparqlwrapper=='+sparqlwrapper_version]
+
+	# Create version file.
+	rhea_mapper_version = pkg_resources.get_distribution("rhea_mapper").version
+	versions = {'Download_date': download_date,
+				'Rhea_release_number': rhea_release_number,
+				'Rhea_release_date': rhea_release_date,
+				'Swissprot_release_number': swissprot_release_number,
+				'Swissprot_release_date': swissprot_release_date,
+				'Trembl_release_number': trembl_release_number,
+				'Trembl_release_date': trembl_release_date,
+				'rhea_mapper': rhea_mapper_version,
+				'rhea_mapper_dependencies': rhea_mapper_dependencies}
+	with open(database_folder+'/version.json', 'w') as output_file:
+		json.dump(versions, output_file, indent=4)
 
 	print('Download Rhea RDF file')
 	urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz', database_folder + '/rhea.rdf.gz', reporthook=urllib_reporthook)

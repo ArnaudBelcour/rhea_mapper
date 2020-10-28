@@ -4,11 +4,11 @@ import re
 import json
 import urllib.request
 
-from rdflib import Graph
-from SPARQLWrapper import SPARQLWrapper, JSON
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from rdflib import Graph
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
 	# Import to be compatible with biopython version lesser than 1.78

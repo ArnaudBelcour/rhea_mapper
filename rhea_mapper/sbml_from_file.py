@@ -1,12 +1,12 @@
 import csv
 import os
 
-from cobra import Model
-from cobra.io import read_sbml_model, write_sbml_model
-from SPARQLWrapper import SPARQLWrapper, JSON
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from cobra import Model
+from cobra.io import read_sbml_model, write_sbml_model
+from SPARQLWrapper import SPARQLWrapper, JSON
 
 try:
     # Import to be compatible with biopython version lesser than 1.78

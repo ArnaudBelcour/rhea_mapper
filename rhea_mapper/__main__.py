@@ -1,8 +1,8 @@
 import argparse
+import pkg_resources
 import sys
 
 from rhea_mapper import create_database, workflow
-import pkg_resources
 
 VERSION = pkg_resources.get_distribution("rhea_mapper").version
 LICENSE = """Copyright (C) Dyliss
