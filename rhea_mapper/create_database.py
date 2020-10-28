@@ -257,10 +257,10 @@ def download_database(database_folder):
 	os.remove(database_folder + '/uniprot_sprot.fasta.gz')
 	print('\n')
 
-	print('Download Reviewed NCBi taxonomy file')
+	print('Download Reviewed NCBI taxonomy file')
 	urllib.request.urlretrieve('ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdmp.zip', database_folder + '/taxdmp.zip', reporthook=urllib_reporthook)
 
-	with zipfile.ZipFile('taxdmp.zip',"r") as zip_taxonomy:
+	with zipfile.ZipFile(database_folder+'/taxdmp.zip',"r") as zip_taxonomy:
 		zip_taxonomy.extract('names.dmp', database_folder)
 		os.rename(database_folder+'/names.dmp', database_folder+'/ncbi_taxonomy.dmp')
 		zip_taxonomy.extract('nodes.dmp', database_folder)
