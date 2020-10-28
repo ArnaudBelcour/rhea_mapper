@@ -97,7 +97,7 @@ def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_c
 
 	SeqIO.write(fasta_records, organism_fasta, 'fasta')
 
-	rhea_reconstruction.manage_genome('sparql_query', organism_ec, organism_fasta, database_folder, output_folder, nb_cpu)
+	rhea_reconstruction.manage_genome(organism, organism_ec, organism_fasta, database_folder, output_folder, nb_cpu)
 
 
 def find_taxon_id(input_taxon_name, database_folder):
