@@ -24,7 +24,9 @@ from rhea_mapper import rhea_reconstruction
 def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_cpu):
 	sparql_organism_query = output_folder+'/'+organism+'.rq'
 	taxon_id = find_taxon_id(organism, database_folder)
-	group_name_to_sparql_query(organism, taxon_id, output_folder)
+
+	taxon_rank = find_rank(taxon_id, database_folder)
+	group_name_to_sparql_query(organism, taxon_id, taxon_rank, output_folder)
 	query_uniprot_annotation(output_folder+'/'+organism+'_ec_evidence.rq', 'enzyme', output_folder+'/'+organism+'_ec_evidence.tsv')
 	query_uniprot_annotation(output_folder+'/'+organism+'_rhea_evidence.rq', 'reaction', output_folder+'/'+organism+'_rhea_evidence.tsv')
 
@@ -104,8 +106,33 @@ def find_taxon_id(input_taxon_name, database_folder):
 
 	return tax_id_matches[0]
 
-def group_name_to_sparql_query(group_name, taxon_id, output_folder):
+
+def find_rank(input_taxon_id, database_folder):
+	rank_matches = []
+
+	taxon_ranks = {}
+	with open(database_folder+'/ncbi_taxonomy_rank.dmp') as input_file:
+		for line in input_file:
+			tax_id, parent_tax_id, rank, _, _, _, _, _, _, _, _, _, _, _ = [element.strip('\t') for element in line.split('|')]
+			taxon_ranks[tax_id] = rank
+
+	if input_taxon_id in taxon_ranks:
+		rank_matches.append(taxon_ranks[input_taxon_id])
+
+	if len(rank_matches) == 0:
+		print('No taxon_id found for ' + input_taxon_id + ', look at ' + database_folder+'/ncbi_taxonomy.dmp' + ' to find the matching for your species.')
+
+	return rank_matches[0]
+
+
+def group_name_to_sparql_query(group_name, taxon_id, taxon_rank, output_folder):
 	taxon_id_uri = 'taxon:' + taxon_id + ''
+
+	# If organism is a species, use up:organism, if not use the taxonomy with up:organism/rdfs:subClassOf.
+	if taxon_rank == "species":
+		taxon_filtering_triple ='?protein up:organism {0} .'.format(taxon_id_uri)
+	else:
+		taxon_filtering_triple ='?protein up:organism/rdfs:subClassOf {0} .'.format(taxon_id_uri)
 
 	organism_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
@@ -115,9 +142,10 @@ def group_name_to_sparql_query(group_name, taxon_id, output_folder):
 	{{
 	?protein a up:Protein .
 	?protein up:reviewed True .
-	?protein up:organism ?organism .
-	?organism rdfs:subClassOf {0} .
-	}}'''.format(taxon_id_uri)
+
+	# Proteins from the targeted taxonomy/organism.
+	{0}
+	}}'''.format(taxon_filtering_triple)
 
 	ec_annotation_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
@@ -126,7 +154,7 @@ def group_name_to_sparql_query(group_name, taxon_id, output_folder):
 	SELECT DISTINCT ?protein ?enzyme ?evidence
 	{{
 	?protein a up:Protein .
-	?protein up:reviewed true.
+	?protein up:reviewed True .
 	?protein up:enzyme ?enzyme .
 	[] a rdf:Statement ;
 				rdf:subject ?protein ;
@@ -134,9 +162,10 @@ def group_name_to_sparql_query(group_name, taxon_id, output_folder):
 				rdf:object ?enzyme ;
 				up:attribution ?attribution .
 	?attribution up:evidence ?evidence .
-	?protein up:organism ?organism .
-	?organism rdfs:subClassOf {0} .
-	}}'''.format(taxon_id_uri)
+
+	# Proteins from the targeted taxonomy/organism.
+	{0}
+	}}'''.format(taxon_filtering_triple)
 
 	rhea_annotation_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
@@ -145,7 +174,7 @@ def group_name_to_sparql_query(group_name, taxon_id, output_folder):
 	SELECT DISTINCT ?protein ?reaction ?evidence
 	{{
 	?protein a up:Protein .
-	?protein up:reviewed true ;
+	?protein up:reviewed True ;
 		up:annotation ?a ;
 		up:attribution ?attribution .
 	?a a up:Catalytic_Activity_Annotation ;
@@ -156,9 +185,10 @@ def group_name_to_sparql_query(group_name, taxon_id, output_folder):
 		rdf:object ?ca ;
 		up:attribution ?attribution .
 	?attribution up:evidence ?evidence .
-	?protein up:organism ?organism .
-	?organism rdfs:subClassOf {0} .
-	}}'''.format(taxon_id_uri)
+
+	# Proteins from the targeted taxonomy/organism.
+	{0}
+	}}'''.format(taxon_filtering_triple)
 
 	with open(output_folder+'/'+group_name+'.rq', 'w') as output_file:
 		output_file.write(organism_sparql_query)

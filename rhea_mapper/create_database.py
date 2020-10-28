@@ -222,6 +222,8 @@ def download_database(database_folder):
 	with zipfile.ZipFile('taxdmp.zip',"r") as zip_taxonomy:
 		zip_taxonomy.extract('names.dmp', database_folder)
 		os.rename(database_folder+'/names.dmp', database_folder+'/ncbi_taxonomy.dmp')
+		zip_taxonomy.extract('nodes.dmp', database_folder)
+		os.rename(database_folder+'/nodes.dmp', database_folder+'/ncbi_taxonomy_rank.dmp')
 	os.remove(database_folder + '/taxdmp.zip')
 	print('\n')
 
