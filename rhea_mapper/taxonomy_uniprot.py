@@ -22,16 +22,31 @@ from rhea_mapper import rhea_reconstruction
 
 
 def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_cpu):
-	sparql_organism_query = output_folder+'/'+organism+'.rq'
+	if not os.path.exists(output_folder+'/sparql_query/'):
+		os.mkdir(output_folder+'/sparql_query/')
+
+	if not os.path.exists(output_folder+'/annotation_evidence/'):
+		os.mkdir(output_folder+'/annotation_evidence/')
+
+	sparql_organism_query = output_folder+'/sparql_query/'+organism+'.rq'
+	sparql_ec_query = output_folder+'/sparql_query/'+organism+'_ec_evidence.rq'
+	sparql_rhea_query = output_folder+'/sparql_query/'+organism+'_rhea_evidence.rq'
+
+	ec_evidence = output_folder+'/annotation_evidence/'+organism+'_ec_evidence.tsv'
+	rhea_evidence = output_folder+'/annotation_evidence/'+organism+'_rhea_evidence.tsv'
+
+	organism_ec = output_folder+'/'+organism+'_ec.tsv'
+	organism_fasta = output_folder+'/'+organism+'.fasta'
+
 	taxon_id = find_taxon_id(organism, database_folder)
 
 	taxon_rank = find_rank(taxon_id, database_folder)
-	group_name_to_sparql_query(organism, taxon_id, taxon_rank, output_folder)
-	query_uniprot_annotation(output_folder+'/'+organism+'_ec_evidence.rq', 'enzyme', output_folder+'/'+organism+'_ec_evidence.tsv')
-	query_uniprot_annotation(output_folder+'/'+organism+'_rhea_evidence.rq', 'reaction', output_folder+'/'+organism+'_rhea_evidence.tsv')
+	group_name_to_sparql_query(organism, taxon_id, taxon_rank, sparql_organism_query, sparql_ec_query, sparql_rhea_query)
+	query_uniprot_annotation(sparql_ec_query, 'enzyme', ec_evidence)
+	query_uniprot_annotation(sparql_rhea_query, 'reaction', rhea_evidence)
 
 	prot_ecs = {}
-	with open(output_folder+'/'+organism+'_ec_evidence.tsv', 'r') as tsv_file:
+	with open(ec_evidence, 'r') as tsv_file:
 		csvreader = csv.reader(tsv_file, delimiter='\t')
 		next(csvreader)
 		for line in csvreader:
@@ -40,7 +55,7 @@ def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_c
 			else:
 				prot_ecs[line[0]].append(line[1])
 
-	with open(output_folder+'/'+organism+'_ec.tsv', 'w') as tsv_file:
+	with open(organism_ec, 'w') as tsv_file:
 		csvwriter = csv.writer(tsv_file, delimiter='\t')
 		csvwriter.writerow(['gene', 'Ec_Number'])
 		for prot_id in prot_ecs:
@@ -80,9 +95,9 @@ def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_c
 
 	fasta_records = list(proteins_in_database.values())
 
-	SeqIO.write(fasta_records, output_folder+'/sparql_query.fasta', 'fasta')
+	SeqIO.write(fasta_records, organism_fasta, 'fasta')
 
-	rhea_reconstruction.manage_genome('sparql_query', output_folder+'/'+organism+'_ec.tsv', output_folder+'/sparql_query.fasta', database_folder, output_folder, nb_cpu)
+	rhea_reconstruction.manage_genome('sparql_query', organism_ec, organism_fasta, database_folder, output_folder, nb_cpu)
 
 
 def find_taxon_id(input_taxon_name, database_folder):
@@ -125,7 +140,7 @@ def find_rank(input_taxon_id, database_folder):
 	return rank_matches[0]
 
 
-def group_name_to_sparql_query(group_name, taxon_id, taxon_rank, output_folder):
+def group_name_to_sparql_query(group_name, taxon_id, taxon_rank, sparql_organism_query, sparql_ec_query, sparql_rhea_query):
 	taxon_id_uri = 'taxon:' + taxon_id + ''
 
 	# If organism is a species, use up:organism, if not use the taxonomy with up:organism/rdfs:subClassOf.
@@ -190,11 +205,11 @@ def group_name_to_sparql_query(group_name, taxon_id, taxon_rank, output_folder):
 	{0}
 	}}'''.format(taxon_filtering_triple)
 
-	with open(output_folder+'/'+group_name+'.rq', 'w') as output_file:
+	with open(sparql_organism_query, 'w') as output_file:
 		output_file.write(organism_sparql_query)
-	with open(output_folder+'/'+group_name+'_ec_evidence.rq', 'w') as output_file:
+	with open(sparql_ec_query, 'w') as output_file:
 		output_file.write(ec_annotation_sparql_query)
-	with open(output_folder+'/'+group_name+'_rhea_evidence.rq', 'w') as output_file:
+	with open(sparql_rhea_query, 'w') as output_file:
 		output_file.write(rhea_annotation_sparql_query)
 	return True
 
