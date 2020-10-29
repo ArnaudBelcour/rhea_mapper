@@ -195,7 +195,7 @@ optional arguments:
 
 ### taxonomy
 
-From an organism name or a taxonomy group, rhea_mapping will query Uniprot to retrieve the proteins associated to this organism/taxonomy and will create a draft metabolic network form it.
+From an organism name or a taxonomy group, rhea_mapper will query Uniprot to retrieve the proteins associated to this organism/taxonomy and will create a draft metabolic network form it.
 
 ````
 usage: rhea_mapper taxonomy [-h] -d DATABASE -o OUTPUT [-c CPU]
