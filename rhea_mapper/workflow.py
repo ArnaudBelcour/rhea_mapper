@@ -56,7 +56,7 @@ def taxonomy_query_workflow(organism, taxonomy_file, output_folder, database_fol
 			csvreader = csv.reader(taxonomy_input, delimiter='\t')
 			next(csvreader)
 			for line in csvreader:
-				taxonomy_output_folder = output_folder + '/' + line[0]
+				taxonomy_output_folder = output_folder + '/' + line[0].replace(' ', '_')
 				os.mkdir(taxonomy_output_folder)
 				os.mkdir(taxonomy_output_folder + '/tmp')
 				taxonomy_uniprot.query_sparql_uniprot_organism(line[0], database_folder, taxonomy_output_folder, nb_cpu)

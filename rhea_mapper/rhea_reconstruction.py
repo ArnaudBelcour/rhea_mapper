@@ -152,6 +152,9 @@ def sbml_creation(rhea_sbml_file, rhea_mapping_file, sbml_output_file):
 	write_sbml_model(species_model, sbml_output_file)
 
 def manage_genome(input_folder, annotation_pathname, input_proteome, database_folder, output_folder, nb_cpu=1):
+	if ' ' in input_folder:
+		print('Space in ' + input_folder + '. This will cause error with OrthoFinder, remove the space.')
+		return
 	rhea2ec = database_folder + '/rhea2ec.tsv'
 	uniprot_rhea_evidence_fasta = database_folder + '/uniprot_rhea_evidence.fasta'
 	uniprot_rhea_evidence_tsv = database_folder + '/uniprot_rhea_evidence.tsv'
