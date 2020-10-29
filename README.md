@@ -12,6 +12,7 @@ Rheamapper is a Python3 (Python >= 3.6) tool to create draft metabolic network f
     - [database](#database)
     - [genome](#genome)
     - [sparql](#sparql)
+    - [taxonomy](#taxonomy)
     - [from_file](#from_file)
 
 ## License
@@ -43,7 +44,7 @@ pip install rhea_mapper
 rhea_mapper has 4 main commands: genome, sparql, database and from_file.
 
 ````
-usage: rhea_mapper [-h] [-v] {database,genome,sparql,from_file} ...
+usage: rhea_mapper [-h] [-v] {database,genome,sparql,taxonomy,from_file} ...
 
 Create Rhea sbml files from genomes. For specific help on each subcommand use:
 rhea_mapper {cmd} --help
@@ -55,13 +56,15 @@ optional arguments:
 subcommands:
   valid subcommands:
 
-  {database,genome,sparql,from_file}
+  {database,genome,sparql,taxonomy,from_file}
     database            Create rhea_mapper database [internet connection
                         required]
     genome              metabolic network reconstruction from genome
     sparql              Using a SPARQL query for reaction ID on Rhea or
                         protein ID on Uniprot, create the corresponding
                         metabolic network
+    taxonomy            With a taxonomy, query Uniprot to create the
+                        corresponding metabolic network
     from_file           Using a tsv file with list of Rhea reaction or Uniprot
                         protein, create the corresponding metabolic network
 
@@ -171,7 +174,7 @@ A Uniprot query must contain the predicate of protein Id from uniprot (`?predica
 For the Rhea query, it must a set of Rhea reactions (`?predicate rdfs:subClassOf rh:Reaction`). Then using these IDs, rhea_mapper will create the corresponding sbml files.
 
 ````
-usage: rhea_mapper sparql [-h] -s SPARQL -e ENDPOINT -d DATABASE -o OUTPUT
+usage: rhea_mapper sparql [-h] [-s SPARQL] -e ENDPOINT -d DATABASE -o OUTPUT
                           [-c CPU]
 
 Using a SPARQL query for reaction ID on Rhea or protein ID on Uniprot, create
@@ -188,6 +191,28 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         Output folder
   -c CPU, --cpu CPU     cpu number for multi-process
+````
+
+### taxonomy
+
+From an organism name or a taxonomy group, rhea_mapping will query Uniprot to retrieve the proteins associated to this organism/taxonomy and will create a draft metabolic network form it.
+
+````
+usage: rhea_mapper taxonomy [-h] -d DATABASE -o OUTPUT [-c CPU]
+                            [--organism ORGANISM] [--taxonomy TAXONOMY]
+
+With a taxonomy, query Uniprot to create the corresponding metabolic network
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DATABASE, --database DATABASE
+                        Database folder, if not existing it will be created
+  -o OUTPUT, --output OUTPUT
+                        Output folder
+  -c CPU, --cpu CPU     cpu number for multi-process
+  --organism ORGANISM   Name of organism or group of organism to query uniprot
+                        for Protein
+  --taxonomy TAXONOMY   TSV file with taxonomy name of organism
 ````
 
 ### from_file
