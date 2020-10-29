@@ -57,7 +57,7 @@ def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_c
 
 	with open(organism_ec, 'w') as tsv_file:
 		csvwriter = csv.writer(tsv_file, delimiter='\t')
-		csvwriter.writerow(['gene', 'Ec_Number'])
+		csvwriter.writerow(['gene', 'EC_Number'])
 		for prot_id in prot_ecs:
 			csvwriter.writerow([prot_id, ','.join(prot_ecs[prot_id])])
 

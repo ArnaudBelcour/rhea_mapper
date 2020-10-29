@@ -1,6 +1,6 @@
 # rhea_mapper
 
-Rheamapper is a Python3 (Python >= 3.6) tool to create draft metabolic network from genomes, sparql query on Rhea or Uniprot and from tsv files containing list of Rhea reactions or Uniprot protein IDs.
+Rhea_mapper is a Python3 (Python >= 3.6) tool to create draft metabolic network from genomes, sparql query on Rhea or Uniprot and from tsv files containing list of Rhea reactions or Uniprot protein IDs.
 
 ## Table of contents
 - [rhea_mapper](#rhea_mapper)
@@ -30,7 +30,7 @@ Python 3 (Python 3.6 is tested). rhea_mapper uses a certain number of Python dep
 * [sparqlwrapper](https://github.com/RDFLib/sparqlwrapper) to query Uniprot and Rhea sparql endpoint.
 
 And another tool:
-* [OrthoFinder](https://github.com/davidemms/OrthoFinder) to find orthologs to uniprot with experimental  evidence linked to rhea. 
+* [OrthoFinder](https://github.com/davidemms/OrthoFinder) to find orthologs to uniprot with experimental evidence linked to rhea.
 
 
 ## Installation with pip
@@ -94,10 +94,14 @@ optional arguments:
 
 It will create an output_folder containing:
 
+- ncbi_taxonomy.dmp: taxonomy file from the NCBI containing for each taxon ID the corresponding taxon name.
+- ncbi_taxonomy_rank.dmp: taxonomy file assigning a rank to each taxon ID.
 - rhea.rdf: the RDF file of Rhea database.
 - rhea2ec.tsv: mapping between Rhea reaction and EC number.
 - rhea2uniprot_sprot.tsv: mapping between Rhea reaction and Uniprot protein ID.
 - uniprot_sprot.fasta: fasta containg all amino-acids sequences from Swissprot.
+- uniprot_ec_evidence.tsv: tsv file containing Uniprot protein ID linked to EC number with experimental evidence.
+- uniprot_go_evidence.tsv: tsv file containing Uniprot protein ID linked to GO terms with experimental evidence.
 - uniprot_rhea_evidence.tsv: tsv file containing Uniprot protein ID linked to Rhea reaction with experimental evidence.
 - uniprot_rhea_evidence.fasta: fasta file containing protein linked to Rhea reaction with experimental evidence.
 - rhea.sbml: SBML file created by rhea_mapper using the rhea.rdf file and the uniprot_rhea_evidence.tsv (to have gene association).
@@ -159,7 +163,7 @@ The fasta file must contain amino-acids sequences.
 
 The tsv file must be structured like:
 
-| gene   | Ec_Number |
+| gene   | EC_Number |
 |--------|-----------|
 | gene_1 | X.X.X.X   |
 | ...    |           |
