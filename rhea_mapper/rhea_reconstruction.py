@@ -44,6 +44,9 @@ def map_ec_to_rhea(annotation_pathname, rhea_ec_pathname, output_pathname):
 def orthology_to_uniprot(input_proteome, rhea_proteome, output_folder, orthogroups_result, nb_cpu):
 	work_directory = output_folder + '/orthology/'
 	os.mkdir(work_directory)
+	if os.stat(input_proteome).st_size == 0:
+		print('Empty input proteome for '+input_proteome+' no run of OrthoFinder launched.')
+		return False
 	input_proteome_file = os.path.basename(input_proteome)
 	shutil.copyfile(input_proteome, work_directory+input_proteome_file)
 	rhea_proteome_file = os.path.basename(rhea_proteome)
@@ -55,6 +58,7 @@ def orthology_to_uniprot(input_proteome, rhea_proteome, output_folder, orthogrou
 	shutil.copyfile(orthodata_path, orthogroups_result)
 	shutil.rmtree(work_directory)
 
+	return True
 
 def map_orthology_to_rhea(rhea_uniprot_pathname, orthofinder_result_pathname, output_pathname):
 	uniprot_to_rheas = {}
@@ -183,8 +187,11 @@ def manage_genome(input_folder, annotation_pathname, input_proteome, database_fo
 		map_ec_to_rhea(annotation_pathname, rhea2ec, mapping_result)
 
 	if input_proteome:
-		orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, nb_cpu)
-		map_orthology_to_rhea(uniprot_rhea_evidence_tsv, orthogroups_result, orthology_result)
+		orthology_check = orthology_to_uniprot(input_proteome, uniprot_rhea_evidence_fasta, output_tmp_folder, orthogroups_result, nb_cpu)
+		if orthology_check:
+			map_orthology_to_rhea(uniprot_rhea_evidence_tsv, orthogroups_result, orthology_result)
+		else:
+			orthology_result = None
 
 	merge_mapping_orthology(mapping_result, orthology_result, merged_result)
 
