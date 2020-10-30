@@ -95,7 +95,6 @@ optional arguments:
 It will create an output_folder containing:
 
 - ncbi_taxonomy.dmp: taxonomy file from the NCBI containing for each taxon ID the corresponding taxon name.
-- ncbi_taxonomy_rank.dmp: taxonomy file assigning a rank to each taxon ID.
 - rhea.rdf: the RDF file of Rhea database.
 - rhea2ec.tsv: mapping between Rhea reaction and EC number.
 - rhea2uniprot_sprot.tsv: mapping between Rhea reaction and Uniprot protein ID.
@@ -105,6 +104,7 @@ It will create an output_folder containing:
 - uniprot_rhea_evidence.tsv: tsv file containing Uniprot protein ID linked to Rhea reaction with experimental evidence.
 - uniprot_rhea_evidence.fasta: fasta file containing protein linked to Rhea reaction with experimental evidence.
 - rhea.sbml: SBML file created by rhea_mapper using the rhea.rdf file and the uniprot_rhea_evidence.tsv (to have gene association).
+- version.json: contains the version number of Rhea database and Uniprot database in this folder.
 
 Rhea files come from the [Rhea download page](ftp://ftp.expasy.org/databases/rhea/rdf/).
 

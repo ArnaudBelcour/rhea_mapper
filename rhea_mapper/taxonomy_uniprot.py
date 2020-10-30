@@ -42,8 +42,7 @@ def query_sparql_uniprot_organism(organism, database_folder, output_folder, nb_c
 
 	taxon_id = find_taxon_id(organism, database_folder)
 
-	taxon_rank = find_rank(taxon_id, database_folder)
-	group_name_to_sparql_query(taxon_id, taxon_rank, sparql_organism_query, sparql_ec_query, sparql_rhea_query)
+	group_name_to_sparql_query(taxon_id, sparql_organism_query, sparql_ec_query, sparql_rhea_query)
 	query_uniprot_annotation(sparql_ec_query, 'enzyme', ec_evidence)
 	query_uniprot_annotation(sparql_rhea_query, 'reaction', rhea_evidence)
 
@@ -124,32 +123,8 @@ def find_taxon_id(input_taxon_name, database_folder):
 	return tax_id_matches[0]
 
 
-def find_rank(input_taxon_id, database_folder):
-	rank_matches = []
-
-	taxon_ranks = {}
-	with open(database_folder+'/ncbi_taxonomy_rank.dmp') as input_file:
-		for line in input_file:
-			tax_id, parent_tax_id, rank, _, _, _, _, _, _, _, _, _, _, _ = [element.strip('\t') for element in line.split('|')]
-			taxon_ranks[tax_id] = rank
-
-	if input_taxon_id in taxon_ranks:
-		rank_matches.append(taxon_ranks[input_taxon_id])
-
-	if len(rank_matches) == 0:
-		print('No taxon_id found for ' + input_taxon_id + ', look at ' + database_folder+'/ncbi_taxonomy.dmp' + ' to find the matching for your species.')
-
-	return rank_matches[0]
-
-
-def group_name_to_sparql_query(taxon_id, taxon_rank, sparql_organism_query, sparql_ec_query, sparql_rhea_query):
+def group_name_to_sparql_query(taxon_id, sparql_organism_query, sparql_ec_query, sparql_rhea_query):
 	taxon_id_uri = 'taxon:' + taxon_id + ''
-
-	# If organism is a species, use up:organism, if not use the taxonomy with up:organism/rdfs:subClassOf.
-	if taxon_rank == "species":
-		taxon_filtering_triple ='?protein up:organism {0} .'.format(taxon_id_uri)
-	else:
-		taxon_filtering_triple ='?protein up:organism/rdfs:subClassOf {0} .'.format(taxon_id_uri)
 
 	organism_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
@@ -157,32 +132,59 @@ def group_name_to_sparql_query(taxon_id, taxon_rank, sparql_organism_query, spar
 
 	SELECT DISTINCT ?protein
 	{{
-	?protein a up:Protein .
-	?protein up:reviewed True .
+		# Taxonomy selection using the union of organism and taxonomy for the input taxon.
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
 
-	# Proteins from the targeted taxonomy/organism.
-	{0}
-	}}'''.format(taxon_filtering_triple)
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism {0} .
+		}}
+		UNION
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
+
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism ?organism .
+			?organism rdfs:subClassOf {0} .
+		}}
+	}}'''.format(taxon_id)
 
 	ec_annotation_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
 	PREFIX up: <http://purl.uniprot.org/core/>
 
 	SELECT DISTINCT ?protein ?enzyme ?evidence
+	WHERE
 	{{
-	?protein a up:Protein .
-	?protein up:reviewed True .
-	?protein up:enzyme ?enzyme .
-	[] a rdf:Statement ;
-				rdf:subject ?protein ;
-				rdf:predicate up:enzyme ;
-				rdf:object ?enzyme ;
-				up:attribution ?attribution .
-	?attribution up:evidence ?evidence .
+		# Get for each protein the corresponding EC number with evidence.
+		?protein up:enzyme ?enzyme .
+		[] a rdf:Statement ;
+					rdf:subject ?protein ;
+					rdf:predicate up:enzyme ;
+					rdf:object ?enzyme ;
+					up:attribution ?attribution .
+		?attribution up:evidence ?evidence .
 
-	# Proteins from the targeted taxonomy/organism.
-	{0}
-	}}'''.format(taxon_filtering_triple)
+		# Taxonomy selection using the union of organism and taxonomy for the input taxon.
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
+
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism {0} .
+		}}
+		UNION
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
+
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism ?organism .
+			?organism rdfs:subClassOf {0} .
+		}}
+	}}'''.format(taxon_id)
 
 	rhea_annotation_sparql_query = '''PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 	PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
@@ -190,22 +192,37 @@ def group_name_to_sparql_query(taxon_id, taxon_rank, sparql_organism_query, spar
 
 	SELECT DISTINCT ?protein ?reaction ?evidence
 	{{
-	?protein a up:Protein .
-	?protein up:reviewed True ;
-		up:annotation ?a ;
-		up:attribution ?attribution .
-	?a a up:Catalytic_Activity_Annotation ;
-		up:catalyticActivity ?ca .
-	?ca up:catalyzedReaction ?reaction .
-	[] rdf:subject ?a ;
-		rdf:predicate up:catalyticActivity ;
-		rdf:object ?ca ;
-		up:attribution ?attribution .
-	?attribution up:evidence ?evidence .
+		# Get for each protein the corresponding Rhea reaction with evidence.
+		?protein a up:Protein .
+		?protein up:reviewed True ;
+			up:annotation ?a ;
+			up:attribution ?attribution .
+		?a a up:Catalytic_Activity_Annotation ;
+			up:catalyticActivity ?ca .
+		?ca up:catalyzedReaction ?reaction .
+		[] rdf:subject ?a ;
+			rdf:predicate up:catalyticActivity ;
+			rdf:object ?ca ;
+			up:attribution ?attribution .
+		?attribution up:evidence ?evidence .
 
-	# Proteins from the targeted taxonomy/organism.
-	{0}
-	}}'''.format(taxon_filtering_triple)
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
+
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism {0} .
+		}}
+		UNION
+		{{
+			?protein a up:Protein .
+			?protein up:reviewed True .
+
+			# Proteins from the targeted taxonomy/organism.
+			?protein up:organism ?organism .
+			?organism rdfs:subClassOf {0} .
+		}}
+	}}'''.format(taxon_id)
 
 	with open(sparql_organism_query, 'w') as output_file:
 		output_file.write(organism_sparql_query)

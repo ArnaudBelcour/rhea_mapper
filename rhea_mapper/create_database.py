@@ -214,25 +214,6 @@ def download_database(database_folder):
 	trembl_release_number = uniprot_lines[2].decode('utf-8').split(' ')[2].replace('\n','')
 	trembl_release_date = uniprot_lines[2].decode('utf-8').split(' ')[4].replace('\n','')
 
-	now = datetime.now()
-	download_date = now.strftime('%d/%m/%Y')
-
-	rhea_mapper_dependencies = ['cobra=='+cobra_version, 'biopython=='+biopython_version, 'rdflib=='+rdflib_version, 'sparqlwrapper=='+sparqlwrapper_version]
-
-	# Create version file.
-	rhea_mapper_version = pkg_resources.get_distribution("rhea_mapper").version
-	versions = {'Download_date': download_date,
-				'Rhea_release_number': rhea_release_number,
-				'Rhea_release_date': rhea_release_date,
-				'Swissprot_release_number': swissprot_release_number,
-				'Swissprot_release_date': swissprot_release_date,
-				'Trembl_release_number': trembl_release_number,
-				'Trembl_release_date': trembl_release_date,
-				'rhea_mapper': rhea_mapper_version,
-				'rhea_mapper_dependencies': rhea_mapper_dependencies}
-	with open(database_folder+'/version.json', 'w') as output_file:
-		json.dump(versions, output_file, indent=4)
-
 	print('Download Rhea RDF file')
 	urllib.request.urlretrieve('ftp://ftp.expasy.org/databases/rhea/rdf/rhea.rdf.gz', database_folder + '/rhea.rdf.gz', reporthook=urllib_reporthook)
 	with gzip.open(database_folder + '/rhea.rdf.gz', 'rb') as f_in:
@@ -263,8 +244,6 @@ def download_database(database_folder):
 	with zipfile.ZipFile(database_folder+'/taxdmp.zip',"r") as zip_taxonomy:
 		zip_taxonomy.extract('names.dmp', database_folder)
 		os.rename(database_folder+'/names.dmp', database_folder+'/ncbi_taxonomy.dmp')
-		zip_taxonomy.extract('nodes.dmp', database_folder)
-		os.rename(database_folder+'/nodes.dmp', database_folder+'/ncbi_taxonomy_rank.dmp')
 	os.remove(database_folder + '/taxdmp.zip')
 	print('\n')
 
@@ -414,3 +393,23 @@ def download_database(database_folder):
 
 	print('Create Rhea SBMl file')
 	rhea_to_sbml(database_folder + '/rhea.rdf', database_folder + '/uniprot_rhea_evidence.tsv', database_folder + '/rhea.sbml')
+
+	# Find metadata
+	now = datetime.now()
+	download_date = now.strftime('%d/%m/%Y')
+
+	rhea_mapper_dependencies = ['cobra=='+cobra_version, 'biopython=='+biopython_version, 'rdflib=='+rdflib_version, 'sparqlwrapper=='+sparqlwrapper_version]
+
+	# Create version file.
+	rhea_mapper_version = pkg_resources.get_distribution("rhea_mapper").version
+	versions = {'Download_date': download_date,
+				'Rhea_release_number': rhea_release_number,
+				'Rhea_release_date': rhea_release_date,
+				'Swissprot_release_number': swissprot_release_number,
+				'Swissprot_release_date': swissprot_release_date,
+				'Trembl_release_number': trembl_release_number,
+				'Trembl_release_date': trembl_release_date,
+				'rhea_mapper': rhea_mapper_version,
+				'rhea_mapper_dependencies': rhea_mapper_dependencies}
+	with open(database_folder+'/version.json', 'w') as output_file:
+		json.dump(versions, output_file, indent=4)
