@@ -38,7 +38,8 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	query_reactions_metabolites = g.query(
 		"""PREFIX rh:<http://rdf.rhea-db.org/>
 		PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-		SELECT ?reaction ?reactionSide ?compound ?compoundName ?compoundFormula ?coefficient WHERE {
+		SELECT ?reaction ?reactionSide ?compound ?compoundName ?compoundFormula ?coefficient
+		WHERE {{
 		?reaction rdfs:subClassOf rh:Reaction .
 		?reaction rh:status rh:Approved .
 		?reaction rh:side ?reactionSide .
@@ -48,8 +49,11 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 		?rhContains rh:coefficient ?coefficient .
 		?participant rh:compound ?compound .
 		?compound rh:name ?compoundName .
-		?compound rh:formula ?compoundFormula .
-		}""")
+		OPTIONAL
+			{{
+			?compound rh:formula ?compoundFormula .
+			}}
+		}}""")
 
 	# Find Uniprot protein associated to Rhea reactions.
 	rhea_uniprots = {}
@@ -69,13 +73,14 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	query_reversible_reaction = g.query(
 		"""PREFIX rh:<http://rdf.rhea-db.org/>
 		PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-		SELECT ?reaction ?bidirection ?xref WHERE {
+		SELECT ?reaction ?bidirection ?xref
+		WHERE {{
 		?reaction rdfs:subClassOf rh:Reaction .
 		?reaction rh:status rh:Approved .
 		?reaction rh:side ?reactionSide .
 		?reaction rh:bidirectionalReaction ?bidirection .
 		?bidirection rdfs:seeAlso ?xref .
-		}""")
+		}}""")
 
 	# Extract xref linked to bidrections.
 	# This way we have all reactions with reactions from other database indicating that they are reversible.
@@ -92,7 +97,8 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	query_directed_reaction = g.query(
 		"""PREFIX rh:<http://rdf.rhea-db.org/>
 		PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-		SELECT ?reaction ?compoundproduct ?compoundsubstrate ?xref WHERE {
+		SELECT ?reaction ?compoundproduct ?compoundsubstrate ?xref
+		WHERE {{
 		?reaction rdfs:subClassOf rh:Reaction .
 		?reaction rh:status rh:Approved .
 		?reaction rh:side ?reactionSide .
@@ -104,7 +110,7 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 		?substrate rh:contains ?participantsubstrate .
 		?participantsubstrate rh:compound ?compoundsubstrate .
 		?direaction rdfs:seeAlso ?xref .
-		}""")
+		}}""")
 
 	# Get all the reactions with direction except the reversible ones.
 	directed_reactions = {}
