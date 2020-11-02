@@ -29,7 +29,7 @@ def urllib_reporthook(count, block_size, total_size):
 	sys.stdout.flush()
 
 
-def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
+def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_rhea_sbml, output_rhea_variable_stoichiometric_reactions):
 	# Read rhea rdf file.
 	g = Graph()
 	g.parse(rhea_rdf_file)
@@ -139,11 +139,12 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	# Create cobra metabolites dictionary for each reactions.
 	reactions = {}
 	metabolites = {}
+	variable_stoich_reactions = []
 	for row in query_reactions_metabolites:
 		reaction_id, reaction_side, metabolite_id, metabolite_name, metabolite_formula, stoichiometric_coefficient = row
 		if reaction_id not in reactions:
 			reaction_id_sbml = reaction_id.split('/')[-1]
-			metabolite_id = metabolite_id.split('/')[-1]
+			metabolite_id = metabolite_id.split('/')[-1].replace('Compound_', '')
 			# Create metabolite.
 			if metabolite_id not in metabolites:
 				metabolite_id_sbml = Metabolite(metabolite_id, compartment='c', name=metabolite_name, formula=metabolite_formula)
@@ -154,13 +155,15 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 				reactions[reaction_id_sbml] = {}
 
 			# Manage specific stoechiometric coefficient.
-			if str(stoichiometric_coefficient) == "N":
+			if str(stoichiometric_coefficient) in ['N', 'Nplus1', 'Nminus1', '2n']:
+				variable_stoich_reactions.append([reaction_id_sbml, metabolite_id, str(stoichiometric_coefficient)])
+			if str(stoichiometric_coefficient) == 'N':
 				stoichiometric_coefficient = 2.0
-			elif str(stoichiometric_coefficient) == "Nplus1":
+			elif str(stoichiometric_coefficient) == 'Nplus1':
 				stoichiometric_coefficient = 3.0
-			elif str(stoichiometric_coefficient) == "Nminus1":
+			elif str(stoichiometric_coefficient) == 'Nminus1':
 				stoichiometric_coefficient = 1.0
-			elif str(stoichiometric_coefficient) == "2n":
+			elif str(stoichiometric_coefficient) == '2n':
 				stoichiometric_coefficient = 4.0
 			else:
 				stoichiometric_coefficient = float(stoichiometric_coefficient)
@@ -168,10 +171,10 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 			# Create reation in the direction find by the directed reaction SPARQL query.
 			if reaction_id_sbml in directed_reactions:
 				# Product compounds are assigned to 1.0 in cobra model.
-				if metabolite_id in directed_reactions[reaction_id_sbml]["product"]:
+				if metabolite_id in directed_reactions[reaction_id_sbml]['product']:
 					reactions[reaction_id_sbml][metabolite_id_sbml] = stoichiometric_coefficient
 				# Substrate compounds are assigned to -1.0 in cobra model.
-				elif metabolite_id in directed_reactions[reaction_id_sbml]["substrate"]:
+				elif metabolite_id in directed_reactions[reaction_id_sbml]['substrate']:
 					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoichiometric_coefficient
 			#Otherwise use the arbitrary direction.
 			else:
@@ -181,6 +184,17 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 				# Left compounds are assigned to -1.0 in cobra model.
 				elif reaction_side.endswith('_L'):
 					reactions[reaction_id_sbml][metabolite_id_sbml] = - stoichiometric_coefficient
+
+	if len(variable_stoich_reactions) > 0:
+		var_rxn_ids = []
+		with open(output_rhea_variable_stoichiometric_reactions, 'w') as variable_stoich_file:
+			csvwriter = csv.writer(variable_stoich_file, delimiter='\t')
+			csvwriter.writerow(['reaction_id', 'metabolite_id', 'stoichiometric_coefficient'])
+			for list_var_stoch_reaction in variable_stoich_reactions:
+				csvwriter.writerow(list_var_stoch_reaction)
+				var_rxn_ids.append(list_var_stoch_reaction[0])
+		print('Warning there is ' + str(len(set(var_rxn_ids))) + ' reactions with variable stoichiometric coefficient.')
+		print('The list of these reactions can be found in: ' + output_rhea_variable_stoichiometric_reactions)
 
 	# Create each reaction and add their compounds.
 	sbml_reactions = []
@@ -199,7 +213,7 @@ def rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_file):
 	model.add_reactions(sbml_reactions)
 
 	# Create sbml file.
-	write_sbml_model(model, output_file)
+	write_sbml_model(model, output_rhea_sbml)
 
 
 def download_database(database_folder):
@@ -398,7 +412,12 @@ def download_database(database_folder):
 	print('\n')
 
 	print('Create Rhea SBMl file')
-	rhea_to_sbml(database_folder + '/rhea.rdf', database_folder + '/uniprot_rhea_evidence.tsv', database_folder + '/rhea.sbml')
+	rhea_rdf_file = database_folder + '/rhea.rdf'
+	uniprot_rhea_evidence = database_folder + '/uniprot_rhea_evidence.tsv'
+
+	output_rhea_sbml = database_folder + '/rhea.sbml'
+	output_rhea_variable_stoichiometric_reactions = database_folder + '/rhea_variable_stoich_reactions.tsv'
+	rhea_to_sbml(rhea_rdf_file, uniprot_rhea_evidence, output_rhea_sbml, output_rhea_variable_stoichiometric_reactions)
 
 	# Find metadata
 	now = datetime.now()
