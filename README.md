@@ -1,5 +1,9 @@
 # rhea_mapper
 
+**WARNING:**
+
+**This tool was a test during my PhD. Currently it is not working and I will not update it, so don't use it. It is kept for test purpose.**
+
 Rhea_mapper is a Python3 (Python >= 3.6) tool to create draft metabolic network from genomes, sparql query on Rhea or Uniprot and from tsv files containing list of Rhea reactions or Uniprot protein IDs.
 
 ## Table of contents
